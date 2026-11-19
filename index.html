@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="RecruitIQ: an AI-powered recruitment automation portfolio built with n8n, Gemini, Google Workspace, and three connected workflows.">
+  <meta name="theme-color" content="#091321">
+  <title>RecruitIQ | AI-Powered Recruitment Automation</title>
+  <style>
+    :root { color-scheme: dark; --bg:#081321; --surface:#101f31; --surface2:#14283c; --line:#2b4258; --ink:#f4f8fc; --muted:#a5b9ca; --mint:#5ce4c3; --blue:#7fb9ff; --amber:#ffca7b; }
+    *, *::before, *::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--bg); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.6; }
+    body::before { content:""; pointer-events:none; position:absolute; inset:0 0 auto; height:800px; background:radial-gradient(ellipse 50% 42% at 90% 7%,#184f6269 0%,transparent 80%),radial-gradient(ellipse 40% 38% at 12% 0%,#1b346855,transparent 85%); z-index:-1; }
+    a { color:inherit; text-decoration:none; }
+    button { font:inherit; }
+    a:focus-visible,button:focus-visible { outline:3px solid var(--mint); outline-offset:4px; }
+    .container { width:min(1150px,calc(100% - 42px)); margin-inline:auto; }
+    .topbar { border-bottom:1px solid #32455688; backdrop-filter:blur(18px); background:#091321b3; position:sticky; top:0; z-index:4; }
+    .nav { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:17px 0; }
+    .brand { display:flex; align-items:center; gap:12px; font-size:21px; font-weight:850; letter-spacing:-.8px; }
+    .brand svg { width:37px; height:37px; }
+    .brand span span { color:var(--mint); }
+    .navlinks { display:flex; align-items:center; gap:26px; font-size:13px; color:#c5d6e4; font-weight:650; }
+    .navlinks a:hover { color:var(--mint); }
+    .nav-cta { border:1px solid #7fc4d66b; border-radius:11px; padding:9px 15px; color:#d9fff7 !important; background:#2d8e9a18; }
+    .hero { display:grid; grid-template-columns:1.07fr .93fr; gap:38px; align-items:center; padding:104px 0 100px; }
+    .eyebrow,.section-kicker { color:var(--mint); font-size:12px; letter-spacing:2.3px; font-weight:850; text-transform:uppercase; }
+    h1 { font-size:clamp(42px,6vw,75px); line-height:1.075; letter-spacing:-3.3px; margin:16px 0 22px; }
+    h1 em { font-style:normal; background:linear-gradient(110deg,var(--mint),#8fc7ff); background-clip:text; color:transparent; }
+    .lead { font-size:17px; color:var(--muted); max-width:575px; margin:0 0 27px; }
+    .btnrow { display:flex; gap:12px; flex-wrap:wrap; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:48px; border-radius:12px; padding:11px 20px; font-weight:750; font-size:14px; transition:transform .2s,background .2s; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-primary { background:var(--mint); color:#082320; }
+    .btn-secondary { background:#ffffff0c; color:#eaf1f7; border:1px solid #7896ac66; }
+    .micro { color:#859daf; font-size:12px; margin-top:16px; }
+    .hero-art { min-height:365px; border-radius:24px; border:1px solid #36556a; background:linear-gradient(150deg,#20344f 0%,#101c30 60%,#0c2531 100%); padding:27px; box-shadow:0 24px 68px #02091590, inset 0 1px #bff5ff21; position:relative; }
+    .window-top { display:flex; gap:7px; align-items:center; padding-bottom:19px; border-bottom:1px solid #385168; }
+    .dot { width:9px; height:9px; border-radius:50%; background:#ff8585; }
+    .dot:nth-child(2) { background:#f6c873; } .dot:nth-child(3) { background:#5ee7b7; }
+    .window-title { margin-left:auto; color:#bdd0de; font-weight:700; font-size:12px; }
+    .diagram { display:grid; gap:11px; padding-top:23px; }
+    .diagram .unit { display:flex; align-items:center; gap:14px; border:1px solid #3a5269; background:#0d1c2cb8; border-radius:12px; padding:12px 15px; }
+    .unit .glyph { display:grid; place-items:center; border-radius:10px; height:39px; width:39px; font-size:18px; flex-shrink:0; background:#244b5a; color:var(--mint); font-weight:800; }
+    .unit b { display:block; font-size:14px; line-height:1.4; }
+    .unit small { color:#96adc1; display:block; font-size:11px; }
+    .diagram .join { height:13px; border-left:2px dashed #74dcca; margin-left:33px; }
+    .status-line { display:flex; align-items:center; justify-content:space-between; padding-top:21px; flex-wrap:wrap; gap:10px; }
+    .status { font-size:12px; display:flex; align-items:center; gap:9px; color:#d9e8f1; }
+    .status-indicator { width:9px; height:9px; border-radius:50%; background:#a5b9ca; box-shadow:0 0 0 4px #a5b9ca14; }
+    .status-indicator.online { background:#5ce4c3; box-shadow:0 0 0 4px #5ce4c326; }
+    .status-indicator.offline { background:#ef9a9a; box-shadow:0 0 0 4px #ef9a9a21; }
+    .mini-action { border:0; background:transparent; color:var(--blue); font-weight:750; cursor:pointer; font-size:12px; padding:5px; }
+    .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; padding-bottom:93px; }
+    .metric { background:#17293b9c; padding:23px 28px; border:1px solid #2c485d; border-radius:17px; }
+    .metric strong { display:block; font-size:30px; letter-spacing:-.9px; line-height:1.2; }
+    .metric span { color:#a0b5c6; font-size:12px; }
+    .section { padding:79px 0; border-top:1px solid #253a4b; }
+    .section h2 { margin:9px 0 12px; font-size:clamp(28px,4vw,42px); line-height:1.2; letter-spacing:-1.3px; }
+    .section-intro { color:var(--muted); margin:0 0 33px; max-width:680px; }
+    .cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:19px; }
+    .card { padding:26px; background:linear-gradient(158deg,#172c40,#102033); border:1px solid #314e65; border-radius:19px; display:flex; flex-direction:column; }
+    .card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+    .card-icon { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:#245964; color:#8ef3da; font-size:20px; font-weight:800; }
+    .card .number { color:#6f90a8; font-size:12px; font-weight:800; letter-spacing:2px; }
+    .card h3 { margin:0 0 9px; font-size:21px; }
+    .card p { color:#a7bfd0; font-size:14px; margin:0 0 23px; flex-grow:1; }
+    .card .pills { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:23px; }
+    .pill { border:1px solid #497485; background:#2f627e25; color:#c3e9ec; border-radius:100px; padding:4px 9px; font-size:11px; }
+    .card a { color:var(--mint); font-size:13px; font-weight:750; }
+    .process { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+    .step { background:#122437; border:1px solid #29475b; border-radius:16px; padding:21px 18px; }
+    .step .badge { background:#285564; color:#9eefe0; border-radius:9px; width:36px; height:36px; display:grid; place-items:center; font-weight:850; margin-bottom:17px; }
+    .step h3 { margin:0 0 6px; font-size:15px; }
+    .step p { color:var(--muted); font-size:12px; margin:0; }
+    .demo-panel { padding:39px; border:1px solid #396876; border-radius:24px; background:linear-gradient(113deg,#153344,#102238 68%); display:grid; grid-template-columns:1.3fr auto; gap:30px; align-items:center; }
+    .demo-panel h2 { margin:8px 0 12px; }
+    .demo-panel p { max-width:600px; color:#b5cbd9; margin:0; }
+    .notice { display:flex; gap:9px; align-items:flex-start; margin-top:22px; color:#f3d3a5; font-size:12px; }
+    .notice span:first-child { flex-shrink:0; }
+    .demo-action { text-align:center; }
+    .demo-action small { display:block; color:#9fb5c7; margin-top:10px; font-size:11px; }
+    .stack { display:flex; flex-wrap:wrap; gap:10px; }
+    .stack span { padding:10px 14px; border-radius:10px; background:#16293c; border:1px solid #304b62; font-size:13px; color:#d5e4ee; font-weight:650; }
+    footer { padding:32px 0 42px; border-top:1px solid #2b4054; }
+    footer .container { display:flex; align-items:center; justify-content:space-between; gap:15px; flex-wrap:wrap; }
+    footer p, footer a { font-size:12px; color:#9cb4c7; margin:0; }
+    footer a:hover { color:var(--mint); }
+    @media(max-width:920px) { .hero { grid-template-columns:1fr; padding:70px 0 65px; } .hero-art { max-width:620px; width:100%; } .cards { grid-template-columns:1fr; } .process { grid-template-columns:repeat(2,1fr); } .demo-panel { grid-template-columns:1fr; } .demo-action { text-align:left; } .metrics { padding-bottom:65px; } }
+    @media(max-width:600px) { .container { width:min(100% - 30px,1150px); } .navlinks a:not(.nav-cta) { display:none; } .navlinks { gap:0; } .nav-cta { padding:8px 11px; } h1 { letter-spacing:-1.7px; } .hero { gap:35px; padding-top:56px; } .hero-art { padding:18px; min-height:0; } .metrics { gap:8px; } .metric { padding:15px 11px; } .metric strong { font-size:23px; } .metric span { font-size:10px; } .section { padding:60px 0; } .process { grid-template-columns:1fr; } .demo-panel { padding:24px; } .btn { width:100%; } .card { padding:22px; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .btn { transition:none; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a href="#home" class="brand" aria-label="RecruitIQ home">
+        <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="12" fill="#194E5B"/><path d="M10 27V13h9a5 5 0 0 1 0 10h-9m8-1 7 5" stroke="#7DF2D6" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="29" cy="12" r="3" fill="#83BFFF"/></svg>
+        <span>Recruit<span>IQ</span></span>
+      </a>
+      <nav class="navlinks" aria-label="Main navigation">
+        <a href="#workflows">Workflows</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#technology">Tech stack</a>
+        <a href="#demo" class="nav-cta">Try the demo ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="home">
+    <div class="container hero">
+      <div>
+        <div class="eyebrow">LIVE PORTFOLIO PROJECT · BUILT WITH n8n</div>
+        <h1>Recruiting,<br><em>made smarter.</em></h1>
+        <p class="lead">RecruitIQ connects job applications, AI-assisted CV screening, and automated error monitoring into one recruitment workflow—built to demonstrate real-world automation.</p>
+        <div class="btnrow">
+          <a class="btn btn-primary" href="#demo">Explore live demo <span aria-hidden="true">↗</span></a>
+          <a class="btn btn-secondary" href="https://github.com/bavlymilad05-droid/RecruitIQ-n8n-Recruitment-Automation" target="_blank" rel="noopener noreferrer">View GitHub project <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="micro">Portfolio demonstration · n8n + Google Gemini + Google Workspace</p>
+      </div>
+      <div class="hero-art" aria-label="RecruitIQ workflow overview">
+        <div class="window-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="window-title">RecruitIQ / workflow</span></div>
+        <div class="diagram">
+          <div class="unit"><div class="glyph">01</div><div><b>Candidate intake</b><small>Validate form → Upload CV → Save application</small></div></div>
+          <div class="join" aria-hidden="true"></div>
+          <div class="unit"><div class="glyph">AI</div><div><b>AI CV screening</b><small>Extract → Evaluate → Recommend → Notify</small></div></div>
+          <div class="join" aria-hidden="true"></div>
+          <div class="unit"><div class="glyph">✓</div><div><b>Error monitoring</b><small>Track exceptions → Alerts → Daily digest</small></div></div>
+        </div>
+        <div class="status-line">
+          <div class="status" role="status" aria-live="polite"><span class="status-indicator" id="status-dot"></span><span id="status-label">Live service status: not verified</span></div>
+          <button class="mini-action" id="status-check" type="button">Check status</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container metrics" aria-label="Project metrics">
+      <div class="metric"><strong>03</strong><span>connected workflows</span></div>
+      <div class="metric"><strong>58</strong><span>n8n nodes across the project</span></div>
+      <div class="metric"><strong>24/7*</strong><span>automation while n8n is running</span></div>
+    </div>
+
+    <section class="section" id="workflows">
+      <div class="container">
+        <div class="section-kicker">THE SYSTEM</div>
+        <h2>Three workflows. One experience.</h2>
+        <p class="section-intro">Explore the real n8n architecture behind RecruitIQ. The public JSON templates are provided without private credentials or service IDs.</p>
+        <div class="cards">
+          <article class="card">
+            <div class="card-top"><div class="card-icon" aria-hidden="true">↧</div><span class="number">WORKFLOW 01</span></div>
+            <h3>Intake</h3>
+            <p>A public application form validates applicant information, checks for duplicates, stores the CV in Google Drive, and logs a new application in Google Sheets.</p>
+            <div class="pills"><span class="pill">Form Trigger</span><span class="pill">Google Drive</span><span class="pill">Google Sheets</span></div>
+            <a href="workflows/Intake_Public_Reviewed.json" download>Download Intake JSON ↗</a>
+          </article>
+          <article class="card">
+            <div class="card-top"><div class="card-icon" aria-hidden="true">✧</div><span class="number">WORKFLOW 02</span></div>
+            <h3>AI Scan</h3>
+            <p>Scheduled screening extracts CV text, evaluates job-relevant evidence with Google Gemini, and routes results into interview, review, or decline paths.</p>
+            <div class="pills"><span class="pill">Every Hour</span><span class="pill">Gemini</span><span class="pill">Gmail</span></div>
+            <a href="workflows/AI_Scan_Public_Reviewed.json" download>Download AI Scan JSON ↗</a>
+          </article>
+          <article class="card">
+            <div class="card-top"><div class="card-icon" aria-hidden="true">!</div><span class="number">WORKFLOW 03</span></div>
+            <h3>Error Monitor</h3>
+            <p>Classifies workflow errors, records issues, sends critical alerts, summarizes failures in a daily digest, and monitors delayed applications.</p>
+            <div class="pills"><span class="pill">Error Trigger</span><span class="pill">Heartbeat</span><span class="pill">Email Alerts</span></div>
+            <a href="workflows/Error_Public_Reviewed.json" download>Download Error JSON ↗</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <div class="section-kicker">FROM APPLICATION TO ACTION</div>
+        <h2>How RecruitIQ works</h2>
+        <p class="section-intro">An application moves through a transparent, auditable process. Human review remains important for hiring decisions.</p>
+        <div class="process">
+          <article class="step"><div class="badge">01</div><h3>Candidate applies</h3><p>A public n8n form collects a CV, job choice, and motivation.</p></article>
+          <article class="step"><div class="badge">02</div><h3>Data is validated</h3><p>Checks form fields and duplicates, then saves the application.</p></article>
+          <article class="step"><div class="badge">03</div><h3>AI evaluates</h3><p>Reads the CV, scores requirements, and suggests an outcome.</p></article>
+          <article class="step"><div class="badge">04</div><h3>Team is notified</h3><p>Updates Sheets, sends emails, and monitors system failures.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="demo">
+      <div class="container">
+        <div class="demo-panel">
+          <div>
+            <div class="section-kicker">TRY THE REAL AUTOMATION</div>
+            <h2>Explore the live application form.</h2>
+            <p>This is the actual public n8n Form Trigger from the RecruitIQ project, running through ngrok. The form may be unavailable when the local computer, n8n, or ngrok is stopped.</p>
+            <div class="notice"><span aria-hidden="true">ⓘ</span><span>Demo privacy: submissions are sent to the connected n8n workflow and may be stored in Google services. Only submit test information you are permitted to share. Do not upload sensitive CVs or personal documents. The application form currently uses the sample branding “Horizon Byte Solutions.”</span></div>
+          </div>
+          <div class="demo-action">
+            <a id="live-form-link" class="btn btn-primary" href="https://ambition-coagulant-epidermis.ngrok-free.dev/form/bca26d83-5ace-4db7-b70e-e140b0c35f36" target="_blank" rel="noopener noreferrer">Open live form ↗</a>
+            <small>Opens in a new tab</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="technology">
+      <div class="container">
+        <div class="section-kicker">TECHNOLOGIES</div>
+        <h2>Built on tools that work together.</h2>
+        <p class="section-intro">A practical automation project combining event triggers, validation logic, AI-supported processing, and cloud integrations.</p>
+        <div class="stack"><span>n8n</span><span>JavaScript</span><span>Google Gemini</span><span>Google Sheets</span><span>Google Drive</span><span>Gmail</span><span>ngrok</span><span>GitHub Pages</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© <span id="year">2026</span> RecruitIQ · Automation portfolio demonstration · *Requires local services to be running</p>
+      <a href="https://github.com/bavlymilad05-droid/RecruitIQ-n8n-Recruitment-Automation" target="_blank" rel="noopener noreferrer">Project source on GitHub ↗</a>
+    </div>
+  </footer>
+
+  <script>
+    "use strict";
+    // Public endpoints only. Never place API keys, credentials or private IDs in this file.
+    const CONFIG = {
+      // Optional: add a dedicated public JSON health endpoint later (with CORS enabled).
+      // It should return {"status":"ok"} and HTTP 200 when the service is ready.
+      healthEndpoint: ""
+    };
+    const statusLabel = document.getElementById("status-label");
+    const statusDot = document.getElementById("status-dot");
+    document.getElementById("year").textContent = new Date().getFullYear();
+    function showStatus(message, mode) {
+      statusLabel.textContent = message;
+      statusDot.className = "status-indicator" + (mode === "online" || mode === "offline" ? " " + mode : "");
+    }
+    async function checkStatus() {
+      if (!CONFIG.healthEndpoint) {
+        showStatus("Status not configured · open the live form to check", "unknown");
+        return;
+      }
+      showStatus("Checking live service…", "unknown");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
+      try {
+        const response = await fetch(CONFIG.healthEndpoint, {
+          method: "GET",
+          headers: { "ngrok-skip-browser-warning": "1" },
+          cache: "no-store",
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          showStatus("Service offline or unavailable", "offline");
+          return;
+        }
+        const data = await response.json();
+        if (data && data.status === "ok") showStatus("Service online", "online");
+        else showStatus("Health response could not be verified", "unknown");
+      } catch (_) {
+        // A CORS error does not prove that n8n is offline.
+        showStatus("Could not verify status (network or CORS)", "unknown");
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+    document.getElementById("status-check").addEventListener("click", checkStatus);
+    checkStatus();
+  </script>
+</body>
+</html>
