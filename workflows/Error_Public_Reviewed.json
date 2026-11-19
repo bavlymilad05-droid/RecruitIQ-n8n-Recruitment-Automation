@@ -1,0 +1,830 @@
+{
+  "name": "Error",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        -240
+      ],
+      "name": "On Workflow Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn the raw error into a classified record: what broke, how bad it is, and what to do.\nconst e = $input.first().json;\nconst message = String(e.execution?.error?.message || e.trigger?.error?.message || 'No error message');\nconst description = String(e.execution?.error?.description || e.trigger?.error?.description || '');\nconst workflow = e.workflow?.name || 'Unknown workflow';\nconst node = e.execution?.lastNodeExecuted || e.trigger?.node?.name || 'Trigger';\nconst text = (message + ' ' + description).toLowerCase();\n \n// First matching rule wins, so the most specific rules come first.\nconst rules = [\n  { type: 'auth', severity: 'critical',\n    pattern: /401|403|unauthori[sz]ed|forbidden|invalid_grant|invalid credentials|token (has )?expired|reauthori|access denied/,\n    fix: 'Reconnect the credential used by this node (Credentials, then Reconnect), then retry the execution. Retrying alone will not help.' },\n  { type: 'rate_limit', severity: 'warning',\n    pattern: /429|rate limit|too many requests|quota|resource has been exhausted/,\n    fix: 'Temporary. The next scheduled run usually succeeds. If it keeps happening, run the batch less often or upgrade the API plan.' },\n  { type: 'network', severity: 'warning',\n    pattern: /timeout|timed out|etimedout|econnreset|econnrefused|enotfound|socket hang up|\\b50[234]\\b|service unavailable|bad gateway/,\n    fix: 'Temporary network or service problem. Retry the execution; check the service status page if it repeats.' },\n  { type: 'ai_output', severity: 'warning',\n    pattern: /output parser|could not parse|parseable|unexpected token|json|schema/,\n    fix: 'The AI returned an unexpected format. Retry once; if it repeats, tighten the prompt or the output schema.' },\n  { type: 'data', severity: 'critical',\n    pattern: /cannot read propert|undefined|is not defined|not found|no column|missing|invalid syntax|expression|does not exist/,\n    fix: 'Data or workflow bug. Open the execution, find the input that broke this node, fix the data or the expression, then retry.' },\n];\nconst rule = rules.find(r => r.pattern.test(text)) ||\n  { type: 'unknown', severity: 'critical', fix: 'Unrecognised error. Open the execution and read the full error.' };\n \n// Business rule: anything failing in Intake affects candidates directly, so it is always critical.\nconst severity = /intake/i.test(workflow) ? 'critical' : rule.severity;\n \nreturn [{ json: {\n  time: $now.setZone('Africa/Cairo').toFormat('yyyy-MM-dd HH:mm'),\n  epochMinute: Math.floor(Date.now() / 60000),\n  workflow, node, type: rule.type, severity,\n  message: message.slice(0, 500), fix: rule.fix,\n  executionId: String(e.execution?.id ?? ''),\n  executionUrl: e.execution?.url || '',\n  fingerprint: [workflow, node, rule.type].join(' | '),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        -240
+      ],
+      "name": "Classify Error"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_ERROR_LOG_SHEET_GID",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Time": "={{ $json.time }}",
+            "Workflow": "={{ $json.workflow }}",
+            "Node": "={{ $json.node }}",
+            "Type": "={{ $json.type }}",
+            "Severity": "={{ $json.severity }}",
+            "Message": "={{ $json.message }}",
+            "Suggested Fix": "={{ $json.fix }}",
+            "Execution ID": "={{ $json.executionId }}",
+            "Execution Link": "={{ $json.executionUrl }}",
+            "Fingerprint": "={{ $json.fingerprint }}",
+            "Epoch Minute": "={{ $json.epochMinute }}",
+            "Alerted": "={{ $json.alerted }}",
+            "Status": "open"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Workflow",
+              "displayName": "Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Node",
+              "displayName": "Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suggested Fix",
+              "displayName": "Suggested Fix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution Link",
+              "displayName": "Execution Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fingerprint",
+              "displayName": "Fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Epoch Minute",
+              "displayName": "Epoch Minute",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alerted",
+              "displayName": "Alerted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        400,
+        -240
+      ],
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6b63bff9-a250-4ec6-9562-b93634fa0727",
+              "leftValue": "={{ $('Check Throttle').item.json.sendNow }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        -240
+      ],
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ALERT THROTTLING: one email per problem per hour, not one per failure.\nconst err = $('Classify Error').first().json;\nconst WINDOW_MINUTES = 60;\nconst num = v => Number(String(v ?? '').replace(/,/g, ''));\n \nconst alertedRecently = $input.all().some(r =>\n  r.json.Fingerprint === err.fingerprint &&\n  r.json.Alerted === 'yes' &&\n  err.epochMinute - num(r.json['Epoch Minute']) < WINDOW_MINUTES);\n \n// Critical errors email now (unless throttled); warnings wait for the daily digest.\nlet alerted = 'digest only';\nif (err.severity === 'critical') alerted = alertedRecently ? 'throttled' : 'yes';\n \nreturn [{ json: { ...err, alerted, sendNow: alerted === 'yes' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -240
+      ],
+      "name": "Check Throttle"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_SEND_TO",
+        "subject": "= [CRITICAL] {{ $('Check Throttle').first().json.workflow }} failed at {{ $('Check Throttle').first().json.node }} ({{ $('Check Throttle').first().json.type }})",
+        "message": "= <!DOCTYPE html> <html lang=\"en\"> <head>   <meta charset=\"UTF-8\">   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> </head>  <body style=\"margin:0;padding:0;background-color:#0b1120;font-family:Arial,Helvetica,sans-serif;\">    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color:#0b1120;padding:40px 15px;\">     <tr>       <td align=\"center\">          <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:600px;width:100%;background-color:#151e30;border:1px solid #29364d;border-radius:14px;overflow:hidden;\">            <!-- HEADER -->           <tr>             <td style=\"background-color:#251a26;padding:30px;text-align:center;border-bottom:3px solid #ef4444;\">                <div style=\"font-size:14px;font-weight:bold;color:#fca5a5;letter-spacing:3px;\">                 SYSTEM MONITORING               </div>                <h1 style=\"color:#ffffff;font-size:27px;margin:18px 0 8px;\">                 &#9888; CRITICAL WORKFLOW ALERT               </h1>                <p style=\"color:#cbd5e1;font-size:14px;margin:0;\">                 An automation workflow has encountered an error.               </p>              </td>           </tr>            <!-- WORKFLOW NAME -->           <tr>             <td style=\"padding:30px 30px 15px;\">                <p style=\"color:#94a3b8;font-size:12px;letter-spacing:2px;margin:0 0 8px;\">                 AFFECTED WORKFLOW               </p>                <h2 style=\"color:#ffffff;font-size:23px;margin:0;\">                 {{ $json[\"Workflow\"] }}               </h2>                <p style=\"color:#ef4444;font-size:13px;font-weight:bold;margin-top:12px;\">                 &#9679; CRITICAL ERROR DETECTED               </p>              </td>           </tr>            <!-- ERROR DETAILS -->           <tr>             <td style=\"padding:10px 30px 25px;\">                <table width=\"100%\" cellpadding=\"12\" cellspacing=\"0\" border=\"0\" style=\"background-color:#1e293b;border-radius:8px;color:#ffffff;font-size:14px;\">                  <tr>                   <td style=\"color:#94a3b8;width:140px;border-bottom:1px solid #334155;\">                     Failed Node                   </td>                   <td style=\"border-bottom:1px solid #334155;font-weight:bold;\">                     {{ $json[\"Node\"] }}                   </td>                 </tr>                  <tr>                   <td style=\"color:#94a3b8;border-bottom:1px solid #334155;\">                     Error Type                   </td>                   <td style=\"border-bottom:1px solid #334155;\">                     {{ $json[\"Type\"] }}                   </td>                 </tr>                  <tr>                   <td style=\"color:#94a3b8;border-bottom:1px solid #334155;\">                     Severity                   </td>                   <td style=\"border-bottom:1px solid #334155;color:#f87171;font-weight:bold;\">                     {{ ($json[\"Severity\"] || \"critical\").toUpperCase() }}                   </td>                 </tr>                  <tr>                   <td style=\"color:#94a3b8;border-bottom:1px solid #334155;\">                     Execution ID                   </td>                   <td style=\"border-bottom:1px solid #334155;\">                     {{ $json[\"Execution ID\"] }}                   </td>                 </tr>                  <tr>                   <td style=\"color:#94a3b8;\">                     Time                   </td>                   <td>                     {{ $json[\"Time\"] }}                   </td>                 </tr>                </table>              </td>           </tr>            <!-- ERROR MESSAGE -->           <tr>             <td style=\"padding:0 30px 25px;\">                <p style=\"color:#fca5a5;font-size:13px;font-weight:bold;margin-bottom:10px;\">                 ERROR MESSAGE               </p>                <div style=\"background-color:#301e2a;border-left:4px solid #ef4444;padding:18px;border-radius:6px;color:#fecaca;font-size:14px;line-height:1.7;overflow-wrap:anywhere;\">                 {{ $json[\"Message\"] }}               </div>              </td>           </tr>            <!-- SUGGESTED FIX -->           <tr>             <td style=\"padding:0 30px 30px;\">                <p style=\"color:#93c5fd;font-size:13px;font-weight:bold;margin-bottom:10px;\">                 SUGGESTED FIX               </p>                <div style=\"background-color:#172b43;border-left:4px solid #3b82f6;padding:18px;border-radius:6px;color:#dbeafe;font-size:14px;line-height:1.7;white-space:pre-line;\">                 {{ $json[\"Suggested Fix\"] }}               </div>              </td>           </tr>            <!-- ACTION BUTTON -->           <tr>             <td align=\"center\" style=\"padding:0 30px 35px;\">                <a href=\"{{ $json['Execution Link'] }}\"                  style=\"display:inline-block;background-color:#ef4444;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 32px;border-radius:8px;\">                 VIEW FAILED EXECUTION               </a>              </td>           </tr>            <!-- FOOTER -->           <tr>             <td style=\"background-color:#0f172a;padding:25px;text-align:center;border-top:1px solid #29364d;\">                <p style=\"color:#94a3b8;font-size:12px;margin:0 0 8px;\">                 Automated Error Monitoring System               </p>                <p style=\"color:#64748b;font-size:11px;margin:0;\">                 Generated automatically by n8n               </p>                <p style=\"color:#64748b;font-size:11px;margin-top:8px;\">                 {{ $now.toFormat('yyyy-MM-dd HH:mm') }}               </p>              </td>           </tr>          </table>        </td>     </tr>   </table>  </body> </html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        -256
+      ],
+      "name": "Alert Admin"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// DAILY DIGEST: one summary of the last 24 hours plus\n// everything still open\n\nconst num = v => Number(String(v ?? '').replace(/,/g, ''));\nconst nowMin = Math.floor(Date.now() / 60000);\n\nconst rows = $input.all()\n  .map(i => i.json)\n  .filter(r => r.Fingerprint);\n\nconst last24 = rows.filter(r => {\n  const minute = num(r['Epoch Minute']);\n  return minute > 0 &&\n    nowMin - minute >= 0 &&\n    nowMin - minute <= 1440;\n});\n\nconst open = rows.filter(r =>\n  String(r.Status || '').toLowerCase() === 'open'\n);\n\nconst count = (list, key) => list.reduce((acc, r) => {\n  const value = String(r[key] || 'unknown');\n  acc[value] = (acc[value] || 0) + 1;\n  return acc;\n}, {});\n\nconst byType = Object.entries(count(last24, 'Type'))\n  .sort((a, b) => b[1] - a[1]);\n\nconst groups = Object.values(open.reduce((acc, r) => {\n  const key = String(r.Fingerprint);\n\n  if (!acc[key]) {\n    acc[key] = {\n      ...r,\n      times: 0\n    };\n  }\n\n  acc[key].times++;\n\n  return acc;\n}, {}));\n\nconst esc = s => String(s ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst total24h = last24.length;\n\nconst critical24h = last24.filter(r =>\n  String(r.Severity || '').toLowerCase() === 'critical'\n).length;\n\nconst openCount = groups.length;\n\nconst hasNews = total24h > 0 || openCount > 0;\n\nconst typeListHtml = byType.map(([t, n]) =>\n  `<li><b>${esc(t)}</b>: ${n}</li>`\n).join('') || '<li>None</li>';\n\nconst openListHtml = groups.map(g => `\n<li>\n  <b>${esc(g.Workflow)}</b> at\n  <b>${esc(g.Node)}</b>\n  (${esc(g.Type)}, ${esc(g.Severity)})\n  &times;${g.times}<br>\n  <span style=\"color:#6b7280;\">\n    ${esc(g.Message)}\n  </span><br>\n  <i>\n    ${esc(g['Suggested Fix'])}\n  </i>\n</li>\n`).join('') || '<li>No open errors</li>';\n\nreturn [{\n  json: {\n    hasNews,\n    total24h,\n    critical24h,\n    openCount,\n    typeListHtml,\n    openListHtml\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -32
+      ],
+      "name": "Build Digest"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_ERROR_LOG_SHEET_GID",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -272,
+        -32
+      ],
+      "name": "Get Error Log"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -496,
+        -32
+      ],
+      "name": "Every Morning 8 AM"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_ERROR_LOG_SHEET_GID",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Fingerprint",
+              "lookupValue": "={{ $json.fingerprint }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -48,
+        -240
+      ],
+      "name": "Get Recent Alerts",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_SEND_TO",
+        "subject": "= Daily error digest: {{ $json.total24h }} new, {{ $json.openCount }} open",
+        "message": "= <!DOCTYPE html> <html lang=\"en\"> <head>   <meta charset=\"UTF-8\">   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> </head>  <body style=\"margin:0;padding:0;background-color:#0b1120;font-family:Arial,Helvetica,sans-serif;\">  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"   style=\"background-color:#0b1120;padding:35px 12px;\">   <tr>     <td align=\"center\">        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"         style=\"width:100%;max-width:600px;background-color:#151e30;border:1px solid #29364d;border-radius:14px;overflow:hidden;\">          <!-- HEADER -->         <tr>           <td style=\"background-color:#182337;padding:35px 25px;text-align:center;border-bottom:3px solid #6366f1;\">              <div style=\"color:#a5b4fc;font-size:12px;font-weight:bold;letter-spacing:3px;\">               AUTOMATION MONITORING             </div>              <h1 style=\"color:#ffffff;font-size:27px;margin:15px 0;\">               Daily Error Digest             </h1>              <p style=\"color:#94a3b8;font-size:14px;margin:0;\">               Workflow Health Report — Last 24 Hours             </p>            </td>         </tr>          <!-- SUMMARY -->         <tr>           <td style=\"padding:30px 25px 15px;\">              <h2 style=\"color:#ffffff;font-size:18px;margin:0 0 20px;\">               Overview             </h2>              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">               <tr>                  <td width=\"33%\" align=\"center\"                   style=\"background-color:#1e293b;padding:20px 5px;border-radius:8px;\">                    <div style=\"color:#60a5fa;font-size:30px;font-weight:bold;\">                     {{ $json.total24h }}                   </div>                    <div style=\"color:#cbd5e1;font-size:11px;margin-top:8px;\">                     NEW ERRORS                   </div>                  </td>                  <td width=\"33%\" align=\"center\"                   style=\"background-color:#2c1b29;padding:20px 5px;border-radius:8px;\">                    <div style=\"color:#f87171;font-size:30px;font-weight:bold;\">                     {{ $json.critical24h }}                   </div>                    <div style=\"color:#cbd5e1;font-size:11px;margin-top:8px;\">                     CRITICAL                   </div>                  </td>                  <td width=\"33%\" align=\"center\"                   style=\"background-color:#29251e;padding:20px 5px;border-radius:8px;\">                    <div style=\"color:#fbbf24;font-size:30px;font-weight:bold;\">                     {{ $json.openCount }}                   </div>                    <div style=\"color:#cbd5e1;font-size:11px;margin-top:8px;\">                     OPEN ISSUES                   </div>                  </td>                </tr>             </table>            </td>         </tr>          <!-- ERROR TYPES -->         <tr>           <td style=\"padding:25px;\">              <h2 style=\"color:#ffffff;font-size:18px;margin:0 0 12px;\">               Errors by Type             </h2>              <div style=\"background-color:#1e293b;border-radius:8px;padding:18px;color:#e2e8f0;font-size:14px;line-height:1.9;\">                <ul style=\"margin:0;padding-left:20px;\">                 {{ $json.typeListHtml }}               </ul>              </div>            </td>         </tr>          <!-- OPEN ISSUES -->         <tr>           <td style=\"padding:0 25px 30px;\">              <h2 style=\"color:#ffffff;font-size:18px;margin:0 0 12px;\">               Open Issues Requiring Attention             </h2>              <div style=\"background-color:#1e293b;border-left:4px solid #f59e0b;border-radius:8px;padding:20px;color:#e2e8f0;font-size:13px;line-height:1.8;\">                <ul style=\"margin:0;padding-left:20px;\">                 {{ $json.openListHtml }}               </ul>              </div>            </td>         </tr>          <!-- FOOTER -->         <tr>           <td style=\"background-color:#0f172a;padding:25px;text-align:center;border-top:1px solid #29364d;\">              <p style=\"color:#94a3b8;font-size:12px;margin:0 0 8px;\">               Automated Error Monitoring System             </p>              <p style=\"color:#64748b;font-size:11px;margin:0;\">               Generated automatically by n8n             </p>              <p style=\"color:#64748b;font-size:11px;margin-top:8px;\">               {{ $now.toFormat('yyyy-MM-dd HH:mm') }}             </p>            </td>         </tr>        </table>      </td>   </tr> </table>  </body> </html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        -48
+      ],
+      "name": "Send Daily Digest"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -496,
+        176
+      ],
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "16f214f7-3ccf-4e77-804f-839957a17c36",
+              "leftValue": "={{ $json.isStuck }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        176
+      ],
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "sendTo": "YOUR_SEND_TO",
+        "subject": "= [HEARTBEAT] {{ $json.stuckCount }} applications waiting more than 3 hours",
+        "message": "= {{ ` <!DOCTYPE html> <html lang=\"en\"> <head>   <meta charset=\"UTF-8\">   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> </head>  <body style=\"margin:0;padding:0;background-color:#0b1120;font-family:Arial,Helvetica,sans-serif;\">  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color:#0b1120;padding:40px 15px;\">   <tr>     <td align=\"center\">        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"width:100%;max-width:600px;background-color:#151e30;border:1px solid #29364d;border-radius:14px;overflow:hidden;\">          <!-- HEADER -->         <tr>           <td style=\"background-color:#25201d;padding:35px 25px;text-align:center;border-bottom:3px solid #f59e0b;\">              <div style=\"color:#fbbf24;font-size:12px;font-weight:bold;letter-spacing:3px;\">               AUTOMATION MONITORING SYSTEM             </div>              <h1 style=\"color:#ffffff;font-size:27px;margin:18px 0 10px;\">               &#9888; HEARTBEAT ALERT             </h1>              <p style=\"color:#cbd5e1;font-size:14px;margin:0;\">               Application Processing Delay Detected             </p>            </td>         </tr>          <!-- STATUS -->         <tr>           <td style=\"padding:30px 30px 15px;text-align:center;\">              <div style=\"display:inline-block;background-color:#453321;color:#fbbf24;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:bold;\">               PROCESSING DELAY DETECTED             </div>              <p style=\"color:#cbd5e1;font-size:14px;line-height:1.8;margin-top:20px;\">               The monitoring system detected applications that               have remained in <b style=\"color:#ffffff;\">NEW</b> status               for more than <b style=\"color:#fbbf24;\">3 hours</b>.             </p>            </td>         </tr>          <!-- STATISTICS -->         <tr>           <td style=\"padding:10px 30px 30px;\">              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"8\">               <tr>                  <td width=\"50%\" align=\"center\" style=\"background-color:#1e293b;padding:25px 10px;border-radius:8px;\">                    <div style=\"color:#fbbf24;font-size:34px;font-weight:bold;\">                     ${$json.stuckCount}                   </div>                    <div style=\"color:#cbd5e1;font-size:12px;margin-top:10px;\">                     STUCK APPLICATIONS                   </div>                  </td>                  <td width=\"50%\" align=\"center\" style=\"background-color:#1e293b;padding:25px 10px;border-radius:8px;\">                    <div style=\"color:#f87171;font-size:34px;font-weight:bold;\">                     ${$json.oldestHours}h                   </div>                    <div style=\"color:#cbd5e1;font-size:12px;margin-top:10px;\">                     LONGEST WAITING TIME                   </div>                  </td>                </tr>             </table>            </td>         </tr>          <!-- APPLICATION LIST -->         <tr>           <td style=\"padding:0 30px 30px;\">              <h2 style=\"color:#ffffff;font-size:18px;margin:0 0 15px;\">               Applications Requiring Attention             </h2>              <div style=\"background-color:#1e293b;border-left:4px solid #f59e0b;border-radius:8px;padding:20px;color:#e2e8f0;font-size:14px;line-height:2;\">                <ul style=\"margin:0;padding-left:20px;\">                 ${$json.listHtml || '<li>No applications found</li>'}               </ul>              </div>            </td>         </tr>          <!-- RECOMMENDED ACTIONS -->         <tr>           <td style=\"padding:0 30px 30px;\">              <h2 style=\"color:#93c5fd;font-size:17px;margin:0 0 15px;\">               Recommended Actions             </h2>              <div style=\"background-color:#172b43;border-left:4px solid #3b82f6;border-radius:8px;padding:20px;color:#dbeafe;font-size:14px;line-height:2;\">                1. Check that the application processing workflow is active.<br>               2. Review the most recent workflow executions.<br>               3. Verify that the Schedule Trigger is running correctly.<br>               4. Inspect applications still marked as NEW.<br>               5. Restart processing safely if necessary.              </div>            </td>         </tr>          <!-- TIME -->         <tr>           <td style=\"padding:0 30px 35px;\">              <table width=\"100%\" cellpadding=\"15\" cellspacing=\"0\" style=\"background-color:#1e293b;border-radius:8px;\">               <tr>                 <td style=\"color:#94a3b8;font-size:13px;\">                   Detection Time                 </td>                 <td align=\"right\" style=\"color:#ffffff;font-size:13px;font-weight:bold;\">                   ${$json.time}                 </td>               </tr>             </table>            </td>         </tr>          <!-- FOOTER -->         <tr>           <td style=\"background-color:#0f172a;padding:25px;text-align:center;border-top:1px solid #29364d;\">              <p style=\"color:#94a3b8;font-size:12px;margin:0 0 8px;\">               Automated Heartbeat Monitoring             </p>              <p style=\"color:#64748b;font-size:11px;margin:0;\">               Powered by n8n Automation             </p>              <p style=\"color:#64748b;font-size:11px;margin-top:8px;\">               Africa/Cairo Timezone             </p>            </td>         </tr>        </table>      </td>   </tr> </table>  </body> </html> ` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        160
+      ],
+      "name": "Heartbeat Alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dbf1f5fc-f4c6-42ed-b694-5053e7b2813a",
+              "leftValue": "={{ $json.hasNews }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        176,
+        -32
+      ],
+      "name": "Anything to Report?"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "New"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -272,
+        176
+      ],
+      "name": "Get waiting Applications",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_ERROR_LOG_SHEET_GID",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Time": "={{ $('Find Stuck Application').item.json.time }}",
+            "Workflow": "error",
+            "Node": "heartbeat",
+            "Type": "heartbeat",
+            "Severity": "critical",
+            "Message": "={{ $('Find Stuck Application').item.json.stuckCount }} applications waiting more than 3 hours.",
+            "Epoch Minute": "={{ $('Find Stuck Application').item.json.epochMinute }}",
+            "Alerted": "yes",
+            "Status": "open",
+            "Suggested Fix": " Check that Workflow 2 is active and its last executions succeeded. Verify the Schedule Trigger and inspect any applications stuck in NEW status for more than 3 hours.",
+            "Fingerprint": "Recruitment 2 - Batch Evaluation (AI Screening) | Heartbeat"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Workflow",
+              "displayName": "Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Node",
+              "displayName": "Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Severity",
+              "displayName": "Severity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suggested Fix",
+              "displayName": "Suggested Fix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Execution Link",
+              "displayName": "Execution Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fingerprint",
+              "displayName": "Fingerprint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Epoch Minute",
+              "displayName": "Epoch Minute",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alerted",
+              "displayName": "Alerted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        160
+      ],
+      "name": "Log Heartbeat"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// HEARTBEAT (dead-man's switch): alerts when nothing\n// happened, which no Error Trigger can see.\n// If applications wait in Status \"new\" for too long, the\n// batch workflow is not running.\n\nconst MAX_WAIT_HOURS = 3;\nconst now = DateTime.now().setZone('Africa/Cairo');\n\nconst parse = s => {\n  s = String(s || '').trim();\n\n  for (const f of [\n    'yyyy-MM-dd HH:mm',\n    'yyyy-MM-dd HH:mm:ss',\n    'M/d/yyyy H:mm:ss',\n    'M/d/yyyy H:mm'\n  ]) {\n    const d = DateTime.fromFormat(s, f, {\n      zone: 'Africa/Cairo'\n    });\n\n    if (d.isValid) return d;\n  }\n\n  const t = Date.parse(s);\n\n  return isNaN(t)\n    ? null\n    : DateTime.fromMillis(t);\n};\n\nconst stuck = $input.all()\n  .map(i => i.json)\n  .filter(r =>\n    String(r.Status || '').toLowerCase() === 'new'\n  )\n  .map(r => ({\n    name: r.Name,\n    position: r.Position,\n    applied: parse(r['Applied At'])\n  }))\n  .filter(r =>\n    r.applied &&\n    now.diff(r.applied, 'hours').hours > MAX_WAIT_HOURS\n  );\n\nconst oldestHours = stuck.length\n  ? Math.round(\n      Math.max(\n        ...stuck.map(r =>\n          now.diff(r.applied, 'hours').hours\n        )\n      )\n    )\n  : 0;\n\nreturn [{\n  json: {\n    isStuck: stuck.length > 0,\n    stuckCount: stuck.length,\n    oldestHours,\n    listHtml: stuck.slice(0, 10).map(r =>\n      `<li>${r.name} (${r.position}), applied ${r.applied.toFormat('yyyy-MM-dd HH:mm')}</li>`\n    ).join(''),\n    time: now.toFormat('yyyy-MM-dd HH:mm'),\n    epochMinute: Math.floor(Date.now() / 60000)\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        176
+      ],
+      "name": "Find Stuck Application"
+    }
+  ],
+  "connections": {
+    "On Workflow Error": {
+      "main": [
+        [
+          {
+            "node": "Classify Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Error": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Alert Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Throttle": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Error Log": {
+      "main": [
+        [
+          {
+            "node": "Build Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Morning 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Error Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Alerts": {
+      "main": [
+        [
+          {
+            "node": "Check Throttle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest": {
+      "main": [
+        [
+          {
+            "node": "Anything to Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get waiting Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Heartbeat Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Anything to Report?": {
+      "main": [
+        [
+          {
+            "node": "Send Daily Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get waiting Applications": {
+      "main": [
+        [
+          {
+            "node": "Find Stuck Application",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Heartbeat Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Stuck Application": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Africa/Cairo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodeGroups": []
+}
