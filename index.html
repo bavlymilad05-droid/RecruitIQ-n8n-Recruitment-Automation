@@ -247,7 +247,6 @@
       try {
         const response = await fetch(CONFIG.healthEndpoint, {
           method: "GET",
-          headers: { "ngrok-skip-browser-warning": "1" },
           cache: "no-store",
           signal: controller.signal
         });
